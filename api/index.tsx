@@ -68,10 +68,10 @@ export const app = new Frog({ title: 'Peanut Casts Frame' });
 app.use('/*', serveStatic({ root: './public' }));
 
 async function fetchPeanutData(fid: string): Promise<PeanutData> {
-  const duneApiKey = 'PYofGEX9MXnturoMSwlUgt9TikexDWGA';
+  const duneApiKey = 'DAYsTOPSdZQVwJNe4RUL3Cy9wtDSidjn';
   const airstackApiKey = '13827f8b8c521443da97ed54d4d6a891d';
   const dune = new DuneClient(duneApiKey);
-  const duneQueryId = 4765897;
+  const duneQueryId = 4801893;
   
   if (Date.now() - lastCacheRefresh > CACHE_REFRESH_INTERVAL || !cachedResults) {
     console.log('Fetching new data from Dune for Peanut...');
@@ -133,10 +133,10 @@ async function fetchPeanutData(fid: string): Promise<PeanutData> {
 }
 
 async function fetchAllowanceData(fid: string): Promise<AllowanceData> {
-  const duneApiKey = 'PYofGEX9MXnturoMSwlUgt9TikexDWGA';
+  const duneApiKey = 'DAYsTOPSdZQVwJNe4RUL3Cy9wtDSidjn';
   const airstackApiKey = '13827f8b8c521443da97ed54d4d6a891d';
   const dune = new DuneClient(duneApiKey);
-  const duneQueryId = 4765897;
+  const duneQueryId = 4801893;
 
   if (Date.now() - lastCacheRefresh > CACHE_REFRESH_INTERVAL || !cachedResults) {
     console.log('Fetching new data from Dune for Allowance...');
@@ -199,10 +199,10 @@ async function fetchAllowanceData(fid: string): Promise<AllowanceData> {
 }
 
 async function fetchLeaderboardData(userFid: string): Promise<LeaderboardEntry[]> {
-  const duneApiKey = 'PYofGEX9MXnturoMSwlUgt9TikexDWGA';
+  const duneApiKey = 'DAYsTOPSdZQVwJNe4RUL3Cy9wtDSidjn';
   const airstackApiKey = '13827f8b8c521443da97ed54d4d6a891d';
   const dune = new DuneClient(duneApiKey);
-  const leaderboardQueryId = 4765835;
+  const leaderboardQueryId = 4801919;
 
   if (Date.now() - lastCacheRefresh > CACHE_REFRESH_INTERVAL || !cachedLeaderboard) {
     console.log('Fetching new leaderboard data from Dune...');
@@ -271,9 +271,9 @@ async function fetchLeaderboardData(userFid: string): Promise<LeaderboardEntry[]
 }
 
 async function fetchUserPeanutCount(fid: string): Promise<number> {
-  const duneApiKey = 'PYofGEX9MXnturoMSwlUgt9TikexDWGA';
+  const duneApiKey = 'DAYsTOPSdZQVwJNe4RUL3Cy9wtDSidjn';
   const dune = new DuneClient(duneApiKey);
-  const leaderboardQueryId = 4765835;
+  const leaderboardQueryId = 4801919;
 
   if (Date.now() - lastCacheRefresh > CACHE_REFRESH_INTERVAL || !cachedLeaderboard) {
     console.log('Fetching new leaderboard data for peanut count...');
@@ -314,9 +314,9 @@ async function fetchUserPeanutCount(fid: string): Promise<number> {
 }
 
 async function fetchUserRank(fid: string): Promise<number> {
-  const duneApiKey = 'PYofGEX9MXnturoMSwlUgt9TikexDWGA';
+  const duneApiKey = 'DAYsTOPSdZQVwJNe4RUL3Cy9wtDSidjn';
   const dune = new DuneClient(duneApiKey);
-  const leaderboardQueryId = 4765835;
+  const leaderboardQueryId = 4801919;
 
   if (Date.now() - lastCacheRefresh > CACHE_REFRESH_INTERVAL || !cachedLeaderboard) {
     console.log('Fetching new leaderboard data for rank...');
@@ -354,14 +354,27 @@ async function fetchUserRank(fid: string): Promise<number> {
   return sortedData.length + 1;
 }
 
+
+
 app.frame('/', async (c: CustomFrameContext) => {
   const { buttonValue, inputText, status } = c;
   const userFid = c.frameSignaturePacket?.fid ? String(c.frameSignaturePacket.fid) : null;
   const fid = userFid || inputText || '443855';
-  let peanutData: PeanutData | null = null;
+  let peanutData: PeanutData = { earningCount: 0, username: "Anonymous", profileImage: null, entityId: fid };
+
   let allowanceData: AllowanceData | null = null;
   let userPeanutCount: number | null = null;
   let userRank: number | null = null;
+  function getOrGenerateHashId(fid: string): string {
+    return `hash-${fid}-${Date.now()}`;
+  }
+  
+  const hashId = getOrGenerateHashId(String(fid));
+
+  const safeFid = encodeURIComponent(fid);
+  const safeUsername = encodeURIComponent(peanutData?.username ?? "Anonymous");
+  const safeProfileImage = encodeURIComponent(peanutData?.profileImage ?? "");
+
 
   if (fid) {
     peanutData = await fetchPeanutData(fid);
@@ -370,9 +383,12 @@ app.frame('/', async (c: CustomFrameContext) => {
     userRank = await fetchUserRank(fid);
   }
 
-  const shareText = peanutData && allowanceData && userFid
-    ? `I earned ${peanutData.earningCount} 🥜 in replies and have ${allowanceData.allowance} Allowance left! (FID: ${userFid}) @arsalanG`
-    : 'Check my Earnings and Allowance! @arsalanG';
+  
+  const shareText = ` I earned ${peanutData?.earningCount || 0} 🥜 today and have ${allowanceData?.allowance || 0} Allowance left!\n\nBackend by @arsalang75523 / FrontEnd by @jeyloo`;
+
+  const shareUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}&embeds[]=${encodeURIComponent(
+    ` https://a6a5-109-61-80-200.ngrok-free.app/?hashid=${hashId}&fid=${safeFid}&username=${safeUsername}&pfpUrl=${safeProfileImage}`
+  )}`;
   const formattedEarnings = peanutData?.earningCount.toLocaleString('en-US') || '0';
   const formattedAllowance = allowanceData?.allowance.toLocaleString('en-US') || '0';
   const formattedRank = userRank?.toLocaleString('en-US') || 'N/A';
@@ -421,7 +437,6 @@ app.frame('/', async (c: CustomFrameContext) => {
               zIndex: 1,
             }}
           >
-            <span>Cooked by arsalanG</span>
             <span>FID: {peanutData.entityId}</span>
           </div>
         )}
@@ -429,12 +444,12 @@ app.frame('/', async (c: CustomFrameContext) => {
           <img
             src={peanutData.profileImage}
             style={{
-              width: '220px',
-              height: '220px',
+              width: '270px',
+              height: '270px',
               borderRadius: '50%',
               border: '6px solid #ffffff',
               boxShadow: '0 8px 16px rgba(0,0,0,0.25)',
-              marginBottom: '30px',
+              marginBottom: '40px',
               zIndex: 1,
               objectFit: 'cover',
               transition: 'transform 0.3s ease-in-out',
@@ -448,12 +463,12 @@ app.frame('/', async (c: CustomFrameContext) => {
             alignItems: 'center',
             background: 'rgba(255,255,255,0.05)',
             borderRadius: '20px',
-            padding: '30px',
+            padding: '40px',
             border: '1px solid rgba(255,255,255,0.15)',
             boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
             backdropFilter: 'blur(8px)',
             zIndex: 1,
-            width: '1000px',
+            width: '1150px',
           }}
         >
           {peanutData && allowanceData ? (
@@ -473,9 +488,9 @@ app.frame('/', async (c: CustomFrameContext) => {
                   color: '#fff',
                 }}
               >
-                <span style={{ fontSize: '40px' }}>🥜</span>
-                <span style={{ fontSize: '21px', opacity: 0.8 }}>Today Earning</span>
-                <span style={{ fontSize: '34px', fontWeight: 700 }}>{formattedEarnings}</span>
+                <span style={{ fontSize: '60px' }}>🥜</span>
+                <span style={{ fontSize: '27px', opacity: 0.8 }}>Today Earning</span>
+                <span style={{ fontSize: '40px', fontWeight: 700 }}>{formattedEarnings}</span>
               </div>
               <div
                 style={{
@@ -485,9 +500,9 @@ app.frame('/', async (c: CustomFrameContext) => {
                   color: '#fff',
                 }}
               >
-                <span style={{ fontSize: '40px' }}>💰</span>
-                <span style={{ fontSize: '21px', opacity: 0.8 }}>remaining Allowance</span>
-                <span style={{ fontSize: '34px', fontWeight: 700 }}>{formattedAllowance}</span>
+                <span style={{ fontSize: '60px' }}>💰</span>
+                <span style={{ fontSize: '27px', opacity: 0.8 }}>remaining Allowance</span>
+                <span style={{ fontSize: '40px', fontWeight: 700 }}>{formattedAllowance}</span>
               </div>
               <div
                 style={{
@@ -497,9 +512,9 @@ app.frame('/', async (c: CustomFrameContext) => {
                   color: '#fff',
                 }}
               >
-                <span style={{ fontSize: '40px' }}>🏅</span>
-                <span style={{ fontSize: '21px', opacity: 0.8 }}>Rank</span>
-                <span style={{ fontSize: '34px', fontWeight: 700 }}>{formattedRank}</span>
+                <span style={{ fontSize: '60px' }}>🏅</span>
+                <span style={{ fontSize: '27px', opacity: 0.8 }}>Rank</span>
+                <span style={{ fontSize: '40px', fontWeight: 700 }}>{formattedRank}</span>
               </div>
               <div
                 style={{
@@ -509,9 +524,9 @@ app.frame('/', async (c: CustomFrameContext) => {
                   color: '#fff',
                 }}
               >
-                <span style={{ fontSize: '40px' }}>🌰</span>
-                <span style={{ fontSize: '21px', opacity: 0.8 }}>all time earning</span>
-                <span style={{ fontSize: '34px', fontWeight: 700 }}>{formattedPeanutCount}</span>
+                <span style={{ fontSize: '60px' }}>🌰</span>
+                <span style={{ fontSize: '27px', opacity: 0.8 }}>all time earning</span>
+                <span style={{ fontSize: '40px', fontWeight: 700 }}>{formattedPeanutCount}</span>
               </div>
             </div>
           ) : (
@@ -551,7 +566,7 @@ app.frame('/', async (c: CustomFrameContext) => {
       <TextInput placeholder="Enter Farcaster FID..." />,
       <Button value="check">Check</Button>,
       <Button action="/leaderboard" value={fid}>Leaderboard</Button>,
-      <Button.Link href={`https://warpcast.com/~/compose?text=${encodeURIComponent(shareText)}`}>Share</Button.Link>,
+      <Button.Link href={shareUrl}>📤 Share</Button.Link>,
       status === 'response' && <Button.Reset>Reset</Button.Reset>,
     ],
   });
@@ -648,3 +663,7 @@ devtools(app, { serveStatic });
 
 export const GET = handle(app);
 export const POST = handle(app);
+
+function getOrGenerateHashId(_arg0: string) {
+  throw new Error('Function not implemented.');
+}
